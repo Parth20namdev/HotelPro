@@ -4,10 +4,10 @@ const jwt = require('jsonwebtoken')
 const { createHash, randomUUID } = require('node:crypto')
 const { database, transaction, collection: c, ObjectId } = require('./db.cjs')
 const D = require('./domain.cjs')
+const wrap = require('./wrap.cjs')
 const app = express()
 app.disable('x-powered-by')
 app.use(express.json({ limit: '32kb' }))
-const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(next)
 const id = (value) => { if (!ObjectId.isValid(value)) D.fail('Invalid record identifier.'); return new ObjectId(value) }
 const publicUser = ({ _id, name, email, phone, role, active }) => ({ id: String(_id), name, email, phone, role, active })
 const cookie = { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' }
@@ -103,7 +103,7 @@ app.post('/api/bookings', wrap(async (req, res) => {
     let profile = await c(db, 'guests').findOne({ email: guest.email }, { session })
     if (!profile) { profile = { _id: new ObjectId(), ...guest, notes: '', createdAt: new Date() }; await c(db, 'guests').insertOne(profile, { session }) }
     const account = req.user.role !== 'guest' ? await c(db, 'users').findOne({ email: guest.email, role: 'guest' }, { session }) : req.user
-    const row = { _id: new ObjectId(), requestId: key, reference: `HP-${randomUUID().slice(0, 8).toUpperCase()}`, createdById: req.user._id, userId: account?._id || req.user._id, guestId: profile._id, roomId, roomNumber: room.number, roomTitle: room.title, roomType: room.type, image: room.images[0] || '', guest, checkIn: input.checkIn, checkOut: input.checkOut, adults, children, nights: totalNights, rateMinor: room.priceMinor, subtotalMinor, taxMinor, totalMinor: subtotalMinor + taxMinor, paidMinor: 0, currency: settings.currency, status: 'confirmed', notes, createdAt: new Date() }
+    const row = { _id: new ObjectId(), requestId: key, reference: `HP-${randomUUID().slice(0, 8).toUpperCase()}`, createdById: req.user._id, userId: account?._id || req.user._id, guestId: profile._id, roomId, roomNumber: room.number, roomTitle: room.title, roomType: room.type, image: room.images?.[0] || '', guest, checkIn: input.checkIn, checkOut: input.checkOut, adults, children, nights: totalNights, rateMinor: room.priceMinor, subtotalMinor, taxMinor, totalMinor: subtotalMinor + taxMinor, paidMinor: 0, currency: settings.currency, status: 'confirmed', notes, createdAt: new Date() }
     await c(db, 'bookings').insertOne(row, { session }); await audit(db, req.user, `Created ${row.reference}, room ${room.number}.`, session); return row
   })
   res.status(201).json({ booking })
@@ -191,7 +191,8 @@ app.use((error, _req, res, _next) => {
   if (error instanceof D.HttpError) return res.status(error.status).json({ message: error.message })
   if (error.code === 11000) return res.status(409).json({ message: 'An account, room, or request with these details already exists.' })
   if (error.type === 'entity.parse.failed') return res.status(400).json({ message: 'Invalid JSON request.' })
-  console.error('HotelPro API:', error.name, error.code || '')
-  res.status(503).json({ message: 'The database is unavailable. Please retry; your change has not been confirmed.' })
+  console.error('HotelPro API:', error)
+  if (error.name?.startsWith('Mongo') || error.codeName) return res.status(503).json({ message: 'The database could not complete this request. Check whether your reservation was saved before trying again.' })
+  res.status(500).json({ message: 'The server could not complete this request. Please contact the hotel if the problem continues.' })
 })
 module.exports = app

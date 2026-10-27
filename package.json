@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "seed": "node scripts/seed.js",
+    "currency:inr": "node scripts/currency-inr.js",
     "test": "node --test tests/*.test.cjs"
   },
   "dependencies": {

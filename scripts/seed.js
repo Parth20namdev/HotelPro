@@ -32,7 +32,7 @@ async function seed() {
       phone: '+1 800 555 4683',
       address: '700 Ocean Drive, Coastal Vista, CA 90291',
       timezone: 'America/Los_Angeles',
-      currency: 'USD',
+      currency: 'INR',
       checkInTime: '15:00',
       checkOutTime: '11:00',
       taxBasisPoints: 1200, // 12%
@@ -516,7 +516,7 @@ async function seed() {
       {
         _id: new ObjectId(),
         actor: staffUser.name,
-        description: `Recorded payment of $${(bookingActive.totalMinor / 100).toFixed(2)} for ${bookingActive.reference}.`,
+        description: `Recorded payment of ₹${(bookingActive.totalMinor / 100).toFixed(2)} for ${bookingActive.reference}.`,
         createdAt: new Date(Date.now() - 2 * 86400000),
       },
     ])

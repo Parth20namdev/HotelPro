@@ -44,6 +44,9 @@ npm run dev
 ```
 Open `http://localhost:3000` in your browser.
 
+### Change an existing hotel's display currency to INR
+Run `npm run currency:inr` once against the configured MongoDB database. This updates hotel settings, existing reservations, payments, and dollar signs in activity descriptions to INR/₹. It keeps every numeric amount unchanged, so use it only when those existing numbers should now be treated as rupee amounts. The command is safe to rerun and does not reset hotel data.
+
 ### 4. Run Automated Test Suite
 ```bash
 npm test
